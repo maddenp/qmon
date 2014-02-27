@@ -15,9 +15,11 @@
 (declare split tree xprocs xres xtime)
 
 (defn colwidths [jobs]
-  (let [headwidth (map #(count ((zipmap headkeys headvals) %)) headkeys)
-        datawidth (map #(reduce max (map count (map % jobs))) headkeys)]
-    (map max headwidth datawidth)))
+  (let [headwidth (map #(count ((zipmap headkeys headvals) %)) headkeys)]
+    (if (empty? jobs)
+      headwidth
+      (let [datawidth (map #(reduce max (map count (map % jobs))) headkeys)]
+        (map max headwidth datawidth)))))
 
 (defn jobinfo [job]
   (let [fns (map #(ns-resolve *ns* (symbol (str "x" (name %)))) headkeys)

@@ -2,9 +2,10 @@
 ;; See the LICENSE file for details.
 
 (ns qmon
-  (:import [java.awt BorderLayout Font TextArea]
+  (:import [java.awt Color Font]
+           [java.awt.event MouseAdapter]
            [java.io StringBufferInputStream]
-           [javax.swing JFrame])
+           [javax.swing JFrame JTextArea])
   (:use [clojure.java.shell :only [sh]])
   (:use [clojure.string :only [join]])
   (:use [clojure.xml :only [parse]]))
@@ -110,18 +111,21 @@
   (let [t (xtime j :resources_used)] (if (nil? t) "-" t)))
 
 (let [user (myname)
-      fr (JFrame. (str "qmon " user))
-      ta (TextArea. "\nLoading..." )]
+      ta (JTextArea. "\nLoading..." )
+      active (atom true)
+      toggle (fn [x]
+               (.setBackground ta (if x (Color/DARK_GRAY) (Color/WHITE)))
+               (not x))]
   (do
-    (.setFont ta (Font. "Monospaced" (Font/PLAIN) 12))
-    (doto fr
-      (.setSize 800 600)
-      (.setLayout (BorderLayout.))
-      (.add ta BorderLayout/CENTER)
-      (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
-      (.setVisible true))
     (doto ta
+      (.setFont (Font. "Monospaced" (Font/PLAIN) 12))
+      (.addMouseListener (proxy [MouseAdapter] [] (mousePressed [e] (swap! active toggle))))
       (.setEditable false))
+    (doto (JFrame. (str "qmon " user))
+      (.setSize 800 600)
+      (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
+      (.add ta)
+      (.setVisible true))
     (while true
-      (.setText ta (show user))
+      (if @active (.setText ta (show user)))
       (Thread/sleep 5000))))

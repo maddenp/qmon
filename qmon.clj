@@ -5,7 +5,7 @@
   (:import [java.awt Color Font]
            [java.awt.event MouseAdapter]
            [java.io StringBufferInputStream]
-           [javax.swing JFrame JTextArea])
+           [javax.swing JFrame JScrollPane JTextArea])
   (:use [clojure.java.shell :only [sh]])
   (:use [clojure.string :only [join]])
   (:use [clojure.xml :only [parse]]))
@@ -112,6 +112,7 @@
 
 (let [user (myname)
       ta (JTextArea. "\nLoading..." )
+      sp (JScrollPane. ta)
       active (atom true)
       toggle (fn [x]
                (.setBackground ta (if x (Color/DARK_GRAY) (Color/WHITE)))
@@ -124,7 +125,7 @@
     (doto (JFrame. (str "qmon " user))
       (.setSize 800 600)
       (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
-      (.add ta)
+      (.add sp)
       (.setVisible true))
     (while true
       (if @active (.setText ta (show user)))

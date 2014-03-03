@@ -132,5 +132,7 @@
       (.add sp)
       (.setVisible true))
     (while true
-      (if @active (.setText ta (show user)))
+      (if @active
+        (let [newtext (show user)]
+          (if @active (.setText ta newtext))))
       (Thread/sleep 5000))))

@@ -70,6 +70,8 @@
   (try (:content (parse (java.io.StringBufferInputStream. (:out (sh "qstat" "-x")))))
        (catch Exception e)))
 
+(def waitmsg "\nLoading...")
+
 (defn xattr [j,k]
   (first (k j)))
 
@@ -111,11 +113,13 @@
   (let [t (xtime j :resources_used)] (if (nil? t) "-" t)))
 
 (let [user (myname)
-      ta (JTextArea. "\nLoading..." )
+      ta (JTextArea. waitmsg)
       sp (JScrollPane. ta)
       active (atom true)
       toggle (fn [x]
-               (.setBackground ta (if x (Color/DARK_GRAY) (Color/WHITE)))
+               (.setBackground ta (if x (Color/BLACK) (Color/WHITE)))
+               (.setForeground ta (if x (Color/WHITE) (Color/BLACK)))
+               (.setText ta (if x "\nPaused, click to resume..." waitmsg))
                (not x))]
   (do
     (doto ta

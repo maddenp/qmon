@@ -4,7 +4,7 @@ p=$(readlink $0) || p=$0
 d=$(dirname $p)
 b=$(basename $p)
 
-CLOJURE=$d/clojure-1.4.0.jar
+CLOJURE=$d/clojure.jar
 
 echo "Starting $b..."
 java -cp $CLOJURE clojure.main $(dirname $p)/$b.clj "$@" &

@@ -120,14 +120,15 @@
       scroll-pane  (JScrollPane. text-area)
       active       (atom true)
       toggle       (fn [x]
-                     (.setBackground text-area (if x (Color/GRAY ) (Color/WHITE)))
-                     (.setForeground text-area (if x (Color/WHITE) (Color/GRAY )))
-                     (.setText       button    (if x "Wake"       "Sleep"      ))
+                     (.setBackground text-area (if x (Color/DARK_GRAY ) (Color/WHITE)))
+                     (.setForeground text-area (if x (Color/WHITE) (Color/DARK_GRAY )))
+                     (.setText button (if x "Wake" "Sleep" ))
                      (if-not x (.setText text-area waitmsg))
                      (not x))]
   (do
     (doto text-area
       (.setFont (Font. "Monospaced" (Font/PLAIN) 12))
+      (.setForeground (Color/DARK_GRAY))
       (.setEditable false))
     (doto button
       (.addMouseListener (proxy [MouseAdapter] [] (mousePressed [e] (swap! active toggle)))))

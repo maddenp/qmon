@@ -123,6 +123,7 @@
                      (.setBackground text-area (if x (Color/GRAY ) (Color/WHITE)))
                      (.setForeground text-area (if x (Color/WHITE) (Color/GRAY )))
                      (.setText       button    (if x "Wake"       "Sleep"      ))
+                     (if-not x (.setText text-area waitmsg))
                      (not x))]
   (do
     (doto text-area

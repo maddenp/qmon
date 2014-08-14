@@ -2,10 +2,10 @@
 ;; See the LICENSE file for details.
 
 (ns qmon
-  (:import [java.awt Color Font]
+  (:import [java.awt BorderLayout Color Font]
            [java.awt.event MouseAdapter]
            [java.io StringBufferInputStream]
-           [javax.swing JFrame JScrollPane JTextArea])
+           [javax.swing JButton JFrame JPanel JScrollPane JTextArea])
   (:use [clojure.java.shell :only [sh]])
   (:use [clojure.string :only [join]])
   (:use [clojure.xml :only [parse]]))
@@ -112,27 +112,36 @@
 (defn xutime [j]
   (let [t (xtime j :resources_used)] (if (nil? t) "-" t)))
 
-(let [user (myname)
-      ta (JTextArea. waitmsg)
-      sp (JScrollPane. ta)
-      active (atom true)
-      toggle (fn [x]
-               (.setBackground ta (if x (Color/BLACK) (Color/WHITE)))
-               (.setForeground ta (if x (Color/WHITE) (Color/BLACK)))
-               (.setText ta (if x "\nPaused, click to resume..." waitmsg))
-               (not x))]
+(let [user         (myname)
+      panel        (JPanel. (BorderLayout.))
+      text-area    (JTextArea. waitmsg)
+      button       (JButton. "Sleep")
+      button-panel (JPanel.)
+      scroll-pane  (JScrollPane. text-area)
+      active       (atom true)
+      toggle       (fn [x]
+                     (.setBackground text-area (if x (Color/GRAY ) (Color/WHITE)))
+                     (.setForeground text-area (if x (Color/WHITE) (Color/GRAY )))
+                     (.setText       button    (if x "Wake"       "Sleep"      ))
+                     (not x))]
   (do
-    (doto ta
+    (doto text-area
       (.setFont (Font. "Monospaced" (Font/PLAIN) 12))
-      (.addMouseListener (proxy [MouseAdapter] [] (mousePressed [e] (swap! active toggle))))
       (.setEditable false))
+    (doto button
+      (.addMouseListener (proxy [MouseAdapter] [] (mousePressed [e] (swap! active toggle)))))
+    (doto button-panel
+      (.add button))
+    (doto panel
+      (.add scroll-pane BorderLayout/CENTER)
+      (.add button-panel BorderLayout/SOUTH))
     (doto (JFrame. (str "qmon " user))
       (.setSize 800 600)
       (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
-      (.add sp)
+      (.add panel)
       (.setVisible true))
     (while true
       (if @active
         (let [newtext (show user)]
-          (if @active (.setText ta newtext))))
-      (Thread/sleep 5000))))
+          (if @active (.setText text-area newtext))))
+      (Thread/sleep 10000))))

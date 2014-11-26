@@ -1,11 +1,6 @@
 #!/bin/bash
 
-p=$(readlink $0) || p=$0
-d=$(dirname $p)
-b=$(basename $p)
-
-CLOJURE=$d/clojure.jar
-
+b=$(basename $0)
 echo "Starting $b..."
-java -cp $CLOJURE clojure.main $(dirname $p)/$b.clj "$@" &
+java -jar $(dirname $0)/${b}.jar "$@" &
 disown

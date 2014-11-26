@@ -1,7 +1,5 @@
-;; The contents of this repository are released under the Apache 2.0 license.
-;; See the LICENSE file for details.
-
-(ns qmon
+(ns qmon.core
+  (:gen-class)
   (:import [java.awt BorderLayout Color Font]
            [java.awt.event MouseAdapter]
            [java.io StringBufferInputStream]
@@ -112,38 +110,41 @@
 (defn xutime [j]
   (let [t (xtime j :resources_used)] (if (nil? t) "-" t)))
 
-(let [user         (myname)
-      panel        (JPanel. (BorderLayout.))
-      text-area    (JTextArea. waitmsg)
-      button       (JButton. "Sleep")
-      button-panel (JPanel.)
-      scroll-pane  (JScrollPane. text-area)
-      active       (atom true)
-      toggle       (fn [x]
-                     (.setBackground text-area (if x (Color/DARK_GRAY ) (Color/WHITE)))
-                     (.setForeground text-area (if x (Color/WHITE) (Color/DARK_GRAY )))
-                     (.setText button (if x "Wake" "Sleep" ))
-                     (if-not x (.setText text-area waitmsg))
-                     (not x))]
-  (do
-    (doto text-area
-      (.setFont (Font. "Monospaced" (Font/PLAIN) 12))
-      (.setForeground (Color/DARK_GRAY))
-      (.setEditable false))
-    (doto button
-      (.addMouseListener (proxy [MouseAdapter] [] (mousePressed [e] (swap! active toggle)))))
-    (doto button-panel
-      (.add button))
-    (doto panel
-      (.add scroll-pane BorderLayout/CENTER)
-      (.add button-panel BorderLayout/SOUTH))
-    (doto (JFrame. (str "qmon " user))
-      (.setSize 800 600)
-      (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
-      (.add panel)
-      (.setVisible true))
-    (while true
-      (if @active
-        (let [newtext (show user)]
-          (if @active (.setText text-area newtext))))
-      (Thread/sleep 10000))))
+;; Entry point from command line.
+
+(defn -main [& args]
+  (let [user         (myname)
+        panel        (JPanel. (BorderLayout.))
+        text-area    (JTextArea. waitmsg)
+        button       (JButton. "Sleep")
+        button-panel (JPanel.)
+        scroll-pane  (JScrollPane. text-area)
+        active       (atom true)
+        toggle       (fn [x]
+                       (.setBackground text-area (if x (Color/DARK_GRAY ) (Color/WHITE)))
+                       (.setForeground text-area (if x (Color/WHITE) (Color/DARK_GRAY )))
+                       (.setText button (if x "Wake" "Sleep" ))
+                       (if-not x (.setText text-area waitmsg))
+                       (not x))]
+    (do
+      (doto text-area
+        (.setFont (Font. "Monospaced" (Font/PLAIN) 12))
+        (.setForeground (Color/DARK_GRAY))
+        (.setEditable false))
+      (doto button
+        (.addMouseListener (proxy [MouseAdapter] [] (mousePressed [e] (swap! active toggle)))))
+      (doto button-panel
+        (.add button))
+      (doto panel
+        (.add scroll-pane BorderLayout/CENTER)
+        (.add button-panel BorderLayout/SOUTH))
+      (doto (JFrame. (str "qmon " user))
+        (.setSize 800 600)
+        (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
+        (.add panel)
+        (.setVisible true))
+      (while true
+        (if @active
+          (let [newtext (show user)]
+            (if @active (.setText text-area newtext))))
+        (Thread/sleep 10000)))))

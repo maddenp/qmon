@@ -26,11 +26,6 @@
         raw (fn [job] (zipmap (map #(:tag %) job) (map #(:content %) job)))]
     (zipmap headkeys (map #(% (raw job)) fns))))
 
-(defn myname []
-  (if (first *command-line-args*)
-    (first *command-line-args*)
-    (get (System/getenv) "USER")))
-
 (defn myjobs [user]
   (let [alljobs (map :content (filter #(= (:tag %) :Job) (tree)))
         re (fn [user] (re-pattern (str user "@.*")))
@@ -112,7 +107,7 @@
   (let [t (xtime j :resources_used)] (if (nil? t) "-" t)))
 
 (defn -main [& args]
-  (let [user         (myname)
+  (let [user         (or (first args) (get (System/getenv) "USER"))
         panel        (JPanel. (BorderLayout.))
         text-area    (JTextArea. waitmsg)
         button       (JButton. "Sleep")
@@ -125,6 +120,7 @@
                        (.setText button (if x "Wake" "Sleep" ))
                        (if-not x (.setText text-area waitmsg))
                        (not x))]
+    (println user)
     (do
       (doto text-area
         (.setFont (Font. "Monospaced" (Font/PLAIN) 12))

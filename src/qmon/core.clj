@@ -120,7 +120,6 @@
                        (.setText button (if x "Wake" "Sleep" ))
                        (if-not x (.setText text-area waitmsg))
                        (not x))]
-    (println user)
     (do
       (doto text-area
         (.setFont (Font. "Monospaced" (Font/PLAIN) 12))

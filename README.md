@@ -1,7 +1,7 @@
 qmon
 ====
 
-A simple PBS job monitor
+A simple PBS job monitor GUI
 
 ### Notes
 

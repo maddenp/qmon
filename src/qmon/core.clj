@@ -9,6 +9,7 @@
   (:use [clojure.xml :only [parse]]))
 
 (def headkeys [:jobid :owner :rtime :utime :procs :nodes :state :queue :part :name])
+
 (def headvals ["Job ID" "Owner" "Requested" "Used" "Procs" "Nodes" "S" "Queue" "Partition" "Job Name"])
 
 (declare split tree xprocs xres xtime)
@@ -21,7 +22,7 @@
         (map max headwidth datawidth)))))
 
 (defn jobinfo [job]
-  (let [fns (map #(ns-resolve *ns* (symbol (str "x" (name %)))) headkeys)
+  (let [fns (map #(ns-resolve 'qmon.core (symbol (str "x" (name %)))) headkeys)
         raw (fn [job] (zipmap (map #(:tag %) job) (map #(:content %) job)))]
     (zipmap headkeys (map #(% (raw job)) fns))))
 
@@ -109,8 +110,6 @@
 
 (defn xutime [j]
   (let [t (xtime j :resources_used)] (if (nil? t) "-" t)))
-
-;; Entry point from command line.
 
 (defn -main [& args]
   (let [user         (myname)

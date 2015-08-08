@@ -1,9 +1,13 @@
 qmon
 ====
+[![Build Status](https://travis-ci.org/maddenp/qmon.svg)](https://travis-ci.org/maddenp/qmon)
+
 A simple PBS job monitor GUI
+
 ###Build
 Install [Leiningen](http://leiningen.org/) if you don't have it, then:
 `lein uberjar`
+
 ###Run
 ````
 Usage: qmon [user]

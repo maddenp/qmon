@@ -2,5 +2,5 @@
 
 b=$(basename $0)
 echo "Starting $b..."
-java -jar $(dirname $0)/${b}.jar "$@" &
+java -jar $(dirname $0)/target/uberjar/${b}.jar "$@" &
 disown

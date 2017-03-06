@@ -35,7 +35,9 @@
                                :queue (dig "./queue")
                                :rtime (dig "./Resource_List/walltime")
                                :state (dig "./job_state")
-                               :utime (dig "./resources_used/walltime")})))
+                               :utime (try
+                                        (dig "./resources_used/walltime")
+                                        (catch Exception e "00:00:00"))})))
                   []
                   jobs))))
     (catch Exception e

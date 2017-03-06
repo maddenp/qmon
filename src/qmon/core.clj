@@ -4,7 +4,7 @@
            [java.awt.event MouseAdapter]
            [javax.swing JButton JFrame JPanel JScrollPane JTextArea])
   (:use [clojure.java.shell :only [sh]]
-        [clojure.string :only [join]]
+        [clojure.string :only [blank?, join]]
         [clj-xpath.core :only [$x $x:text]]))
 
 (def headkeys [:jobid :owner :rtime :utime :nodes :state :queue :name])
@@ -22,20 +22,22 @@
 
 (defn extract-jobs []
   (try
-    (let [xml (:out (sh "qstat" "-x"))
-          jobs ($x "//Job" xml)]
-      (reduce (fn [m e]
-                (let [dig #($x:text % e)]
-                  (conj m {:jobid (re-find #"^[0-9]+" (dig "."))
-                           :name (dig "./Job_Name")
-                           :nodes (dig "./Resource_List/nodes")
-                           :owner (re-find #"^[^@]+" (dig "./Job_Owner"))
-                           :queue (dig "./queue")
-                           :rtime (dig "./Resource_List/walltime")
-                           :state (dig "./job_state")
-                           :utime (dig "./resources_used/walltime")})))
-              []
-              jobs))
+    (let [xml (:out (sh "qstat" "-x"))]
+      (if (blank? xml)
+        []
+        (let [jobs ($x "//Job" xml)]
+          (reduce (fn [m e]
+                    (let [dig #($x:text % e)]
+                      (conj m {:jobid (re-find #"^[0-9]+" (dig "."))
+                               :name (dig "./Job_Name")
+                               :nodes (dig "./Resource_List/nodes")
+                               :owner (re-find #"^[^@]+" (dig "./Job_Owner"))
+                               :queue (dig "./queue")
+                               :rtime (dig "./Resource_List/walltime")
+                               :state (dig "./job_state")
+                               :utime (dig "./resources_used/walltime")})))
+                  []
+                  jobs))))
     (catch Exception e
       (binding [*out* *err*]
         (println (.getMessage e))))))

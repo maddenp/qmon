@@ -2,17 +2,16 @@
   (:gen-class)
   (:import [java.awt BorderLayout Color Font]
            [java.awt.event MouseAdapter]
-           [java.io StringBufferInputStream]
            [javax.swing JButton JFrame JPanel JScrollPane JTextArea])
-  (:use [clojure.java.shell :only [sh]])
-  (:use [clojure.string :only [join]])
-  (:use [clojure.xml :only [parse]]))
+  (:use [clojure.java.shell :only [sh]]
+        [clojure.string :only [join]]
+        [clj-xpath.core :only [$x $x:text]]))
 
-(def headkeys [:jobid :owner :rtime :utime :procs :nodes :state :queue :part :name])
+(def headkeys [:jobid :owner :rtime :utime :nodes :state :queue :name])
+(def headvals ["Job ID" "Owner" "Requested" "Used" "Nodes" "S" "Queue" "Job Name"])
+(def waitmsg "\nLoading...")
 
-(def headvals ["Job ID" "Owner" "Requested" "Used" "Procs" "Nodes" "S" "Queue" "Partition" "Job Name"])
-
-(declare split tree xprocs xres xtime)
+(declare split)
 
 (defn colwidths [jobs]
   (let [headwidth (map #(count ((zipmap headkeys headvals) %)) headkeys)]
@@ -21,19 +20,29 @@
       (let [datawidth (map #(reduce max (map count (map % jobs))) headkeys)]
         (map max headwidth datawidth)))))
 
-(defn jobinfo [job]
-  (let [fns (map #(ns-resolve 'qmon.core (symbol (str "x" (name %)))) headkeys)
-        raw (fn [job] (zipmap (map #(:tag %) job) (map #(:content %) job)))]
-    (zipmap headkeys (map #(% (raw job)) fns))))
+(defn extract-jobs []
+  (try
+    (let [xml (:out (sh "qstat" "-x"))
+          jobs ($x "//Job" xml)]
+      (reduce (fn [m e]
+                (let [dig #($x:text % e)]
+                  (conj m {:jobid (re-find #"^[0-9]+" (dig "."))
+                           :name (dig "./Job_Name")
+                           :nodes (dig "./Resource_List/nodes")
+                           :owner (re-find #"^[^@]+" (dig "./Job_Owner"))
+                           :queue (dig "./queue")
+                           :rtime (dig "./Resource_List/walltime")
+                           :state (dig "./job_state")
+                           :utime (dig "./resources_used/walltime")})))
+              []
+              jobs))
+    (catch Exception e
+      (binding [*out* *err*]
+        (println (.getMessage e))))))
 
 (defn myjobs [user]
-  (let [alljobs (map :content (filter #(= (:tag %) :Job) (tree)))
-        re (fn [user] (re-pattern (str user "@.*")))
-        x (filter #(re-matches (re user) (:owner %)) (map #(jobinfo %) alljobs))]
-    (map #(assoc %
-            :jobid (re-find (re-matcher #"^\d+" (:jobid %)))
-            :owner (re-find (re-matcher #"^[^@]+" (:owner %))))
-         x)))
+  (let [jobs (extract-jobs)]
+    (filter #(= user (:owner %)) jobs)))
 
 (defn prhead [msg fmt sep]
   (str (format "\n%s\n\n" msg) (apply format fmt headvals) "\n" sep "\n"))
@@ -59,52 +68,6 @@
 (defn split [jobs]
   (let [f (fn [s j] (filter #(= s (:state %)) j))]
     (apply merge (map #(hash-map % (f (name %) jobs)) [:Q :R :C]))))
-
-(defn tree []
-  (try (:content (parse (java.io.StringBufferInputStream. (:out (sh "qstat" "-x")))))
-       (catch Exception e)))
-
-(def waitmsg "\nLoading...")
-
-(defn xattr [j,k]
-  (first (k j)))
-
-(defn xjobid [j]
-  (xattr j :Job_Id))
-
-(defn xname [j]
-  (xattr j :Job_Name))
-
-(defn xnodes [j]
-  (if (= "-" (xprocs j)) (xres j :nodect) "-"))
-
-(defn xowner [j]
-  (xattr j :Job_Owner))
-
-(defn xpart [j]
-  (let [p (first (:content (first (filter #(= (:tag %) :partition) (:Resource_List j)))))]
-    (if (nil? p) "-" p)))
-
-(defn xprocs [j]
-  (let [procs (xres j :procs) ] (if (nil? procs) "-" procs)))
-
-(defn xqueue [j]
-  (xattr j :queue))
-
-(defn xres [j,k]
-  (first (:content (first (filter #(= (:tag %) k) (:Resource_List j))))))
-
-(defn xrtime [j]
-  (xtime j :Resource_List))
-
-(defn xstate [j]
-  (xattr j :job_state))
-
-(defn xtime [j,k]
-  (first (:content (first (filter #(= (:tag %) :walltime) (k j))))))
-
-(defn xutime [j]
-  (let [t (xtime j :resources_used)] (if (nil? t) "-" t)))
 
 (defn -main [& args]
   (let [user         (or (first args) (get (System/getenv) "USER"))

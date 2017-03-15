@@ -3,6 +3,7 @@
   (:import [java.awt BorderLayout Color Font]
            [java.awt.event MouseAdapter]
            [javax.swing JButton JFrame JPanel JScrollPane JTextArea])
+  (:require [clojure.tools.cli :refer [parse-opts]])
   (:use [clojure.java.shell :only [sh]]
         [clojure.string :only [blank?, join]]
         [clj-xpath.core :only [$x $x:text]]))
@@ -12,6 +13,10 @@
 (def waitmsg "\nLoading...")
 
 (declare split)
+
+(def cli-options
+  [["-a" "--all"]
+   ["-h" "--help"]])
 
 (defn colwidths [jobs]
   (let [headwidth (map #(count ((zipmap headkeys headvals) %)) headkeys)]
@@ -44,9 +49,9 @@
       (binding [*out* *err*]
         (println (.getMessage e))))))
 
-(defn myjobs [user]
+(defn myjobs [user-re]
   (let [jobs (extract-jobs)]
-    (filter #(= user (:owner %)) jobs)))
+    (filter #(re-matches user-re (:owner %)) jobs)))
 
 (defn prhead [msg fmt sep]
   (str (format "\n%s\n\n" msg) (apply format fmt headvals) "\n" sep "\n"))
@@ -57,8 +62,8 @@
       nil
       (str (prhead msg fmt sep) (reduce #(str %1 %2) (map #(str (fmtjob % fmt) "\n") jobs))))))
 
-(defn show [user]
-  (let [jobs      (myjobs   user)
+(defn show [user-re]
+  (let [jobs      (myjobs   user-re)
         sections  (split    jobs)
         colwidths (colwidths jobs)
         fmt       (join " " (map #(str "%-" % "s") colwidths))
@@ -74,7 +79,9 @@
     (apply merge (map #(hash-map % (f (name %) jobs)) [:Q :R :C]))))
 
 (defn -main [& args]
-  (let [user         (or (first args) (get (System/getenv) "USER"))
+  (let [opts         (parse-opts args cli-options)
+        show-all     (-> opts :options :all)
+        user-re      (if show-all #".*" (or (first (:arguments opts)) (get (System/getenv) "USER")))
         panel        (JPanel. (BorderLayout.))
         text-area    (JTextArea. waitmsg)
         button       (JButton. "Sleep")
@@ -87,6 +94,7 @@
                        (.setText button (if x "Wake" "Sleep" ))
                        (if-not x (.setText text-area waitmsg))
                        (not x))]
+;;     (println opts)
     (do
       (doto text-area
         (.setFont (Font. "Monospaced" (Font/PLAIN) 12))
@@ -99,13 +107,13 @@
       (doto panel
         (.add scroll-pane BorderLayout/CENTER)
         (.add button-panel BorderLayout/SOUTH))
-      (doto (JFrame. (str "qmon " user))
+      (doto (JFrame. (str "qmon" (if show-all "" (str " " user-re))))
         (.setSize 800 600)
         (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
         (.add panel)
         (.setVisible true))
       (while true
         (if @active
-          (let [newtext (show user)]
+          (let [newtext (show user-re)]
             (if @active (.setText text-area newtext))))
         (Thread/sleep 10000)))))

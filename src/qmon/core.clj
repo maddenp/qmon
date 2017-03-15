@@ -10,13 +10,10 @@
 
 (def headkeys [:jobid :owner :rtime :utime :nodes :state :queue :name])
 (def headvals ["Job ID" "Owner" "Requested" "Used" "Nodes" "S" "Queue" "Job Name"])
+(def cli-options [["-a" "--all"] ["-h" "--help"]])
 (def waitmsg "\nLoading...")
 
 (declare split)
-
-(def cli-options
-  [["-a" "--all"]
-   ["-h" "--help"]])
 
 (defn colwidths [jobs]
   (let [headwidth (map #(count ((zipmap headkeys headvals) %)) headkeys)]
@@ -79,41 +76,42 @@
     (apply merge (map #(hash-map % (f (name %) jobs)) [:Q :R :C]))))
 
 (defn -main [& args]
-  (let [opts         (parse-opts args cli-options)
-        show-all     (-> opts :options :all)
-        user-re      (if show-all #".*" (or (first (:arguments opts)) (get (System/getenv) "USER")))
-        panel        (JPanel. (BorderLayout.))
-        text-area    (JTextArea. waitmsg)
-        button       (JButton. "Sleep")
-        button-panel (JPanel.)
-        scroll-pane  (JScrollPane. text-area)
-        active       (atom true)
-        toggle       (fn [x]
-                       (.setBackground text-area (if x (Color/DARK_GRAY ) (Color/WHITE)))
-                       (.setForeground text-area (if x (Color/WHITE) (Color/DARK_GRAY )))
-                       (.setText button (if x "Wake" "Sleep" ))
-                       (if-not x (.setText text-area waitmsg))
-                       (not x))]
-;;     (println opts)
-    (do
-      (doto text-area
-        (.setFont (Font. "Monospaced" (Font/PLAIN) 12))
-        (.setForeground (Color/DARK_GRAY))
-        (.setEditable false))
-      (doto button
-        (.addMouseListener (proxy [MouseAdapter] [] (mousePressed [e] (swap! active toggle)))))
-      (doto button-panel
-        (.add button))
-      (doto panel
-        (.add scroll-pane BorderLayout/CENTER)
-        (.add button-panel BorderLayout/SOUTH))
-      (doto (JFrame. (str "qmon" (if show-all "" (str " " user-re))))
-        (.setSize 800 600)
-        (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
-        (.add panel)
-        (.setVisible true))
-      (while true
-        (if @active
-          (let [newtext (show user-re)]
-            (if @active (.setText text-area newtext))))
-        (Thread/sleep 10000)))))
+  (let [opts (parse-opts args [["-a" "--all"] ["-h" "--help"]])]
+    (if (-> opts :options :help)
+      (println (str "qmon [-h/--help] [-a/--all] [filter-regex]"))
+      (let [show-all     (-> opts :options :all)
+            user-re      (if show-all #".*" (re-pattern (or (first (:arguments opts)) (get (System/getenv) "USER"))))
+            panel        (JPanel. (BorderLayout.))
+            text-area    (JTextArea. waitmsg)
+            button       (JButton. "Sleep")
+            button-panel (JPanel.)
+            scroll-pane  (JScrollPane. text-area)
+            active       (atom true)
+            toggle       (fn [x]
+                           (.setBackground text-area (if x (Color/DARK_GRAY ) (Color/WHITE)))
+                           (.setForeground text-area (if x (Color/WHITE) (Color/DARK_GRAY )))
+                           (.setText button (if x "Wake" "Sleep" ))
+                           (if-not x (.setText text-area waitmsg))
+                           (not x))]
+        (do
+          (doto text-area
+            (.setFont (Font. "Monospaced" (Font/PLAIN) 12))
+            (.setForeground (Color/DARK_GRAY))
+            (.setEditable false))
+          (doto button
+            (.addMouseListener (proxy [MouseAdapter] [] (mousePressed [e] (swap! active toggle)))))
+          (doto button-panel
+            (.add button))
+          (doto panel
+            (.add scroll-pane BorderLayout/CENTER)
+            (.add button-panel BorderLayout/SOUTH))
+          (doto (JFrame. (str "qmon" (if show-all "" (str " " user-re))))
+            (.setSize 800 600)
+            (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
+            (.add panel)
+            (.setVisible true))
+          (while true
+            (if @active
+              (let [newtext (show user-re)]
+                (if @active (.setText text-area newtext))))
+            (Thread/sleep 10000)))))))
